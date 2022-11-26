@@ -1,6 +1,6 @@
-package de.yoyosource.data2;
+package de.yoyosource.data;
 
-import de.yoyosource.data2.impl.RasterImpl;
+import de.yoyosource.data.impl.RasterImpl;
 
 public interface RasterSource {
     int width();

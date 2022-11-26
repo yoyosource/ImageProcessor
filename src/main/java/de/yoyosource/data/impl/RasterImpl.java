@@ -1,7 +1,7 @@
-package de.yoyosource.data2.impl;
+package de.yoyosource.data.impl;
 
-import de.yoyosource.data2.Raster;
-import de.yoyosource.data2.RasterSource;
+import de.yoyosource.data.Raster;
+import de.yoyosource.data.RasterSource;
 
 import java.util.ArrayList;
 import java.util.List;

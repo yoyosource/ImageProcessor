@@ -1,4 +1,4 @@
-package de.yoyosource.data2;
+package de.yoyosource.data;
 
 public interface Raster extends RasterSource {
     int width();

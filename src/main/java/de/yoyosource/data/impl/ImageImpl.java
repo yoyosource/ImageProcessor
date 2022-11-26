@@ -1,9 +1,9 @@
-package de.yoyosource.data2.impl;
+package de.yoyosource.data.impl;
 
 import de.yoyosource.data.Color;
-import de.yoyosource.data2.Image;
-import de.yoyosource.data2.Raster;
-import de.yoyosource.data2.RasterSource;
+import de.yoyosource.data.Image;
+import de.yoyosource.data.Raster;
+import de.yoyosource.data.RasterSource;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
