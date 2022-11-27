@@ -5,6 +5,7 @@ import de.yoyosource.data.RasterSource;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalDouble;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 
@@ -13,13 +14,23 @@ public class RasterImpl implements Raster {
     private final RasterSource raster;
     private List<BiFunction<Integer, Double, Double>> operators = new ArrayList<>();
 
+    private OptionalDouble min = OptionalDouble.empty();
+    private OptionalDouble max = OptionalDouble.empty();
+
     public RasterImpl(RasterSource rasterSource) {
         this.raster = rasterSource;
     }
 
-    private RasterImpl(Raster raster, BiFunction<Integer, Double, Double> operator) {
-        this.raster = raster;
-        this.operators.add(operator);
+    public RasterImpl(RasterSource rasterSource, double min, double max) {
+        this.raster = rasterSource;
+        this.min = OptionalDouble.of(min);
+        this.max = OptionalDouble.of(max);
+    }
+
+    private RasterImpl(RasterSource rasterSource, OptionalDouble min, OptionalDouble max) {
+        this.raster = rasterSource;
+        this.min = min;
+        this.max = max;
     }
 
     @Override
@@ -40,7 +51,7 @@ public class RasterImpl implements Raster {
     @Override
     public Raster eval() {
         if (operators.isEmpty()) {
-            return new RasterImpl(raster);
+            return new RasterImpl(raster, min, max);
         }
 
         int width = width();
@@ -68,114 +79,160 @@ public class RasterImpl implements Raster {
                 }
                 return data.get()[index];
             }
-        });
+        }, min, max);
     }
 
     @Override
     public Raster add(double value) {
         operators.add((i, d) -> d + value);
+        if (min.isPresent()) min = OptionalDouble.of(min.getAsDouble() + value);
+        if (max.isPresent()) max = OptionalDouble.of(max.getAsDouble() + value);
         return this;
     }
 
     @Override
     public Raster subtract(double value) {
         operators.add((i, d) -> d - value);
+        if (min.isPresent()) min = OptionalDouble.of(min.getAsDouble() - value);
+        if (max.isPresent()) max = OptionalDouble.of(max.getAsDouble() - value);
         return this;
     }
 
     @Override
     public Raster multiply(double value) {
         operators.add((i, d) -> d * value);
+        if (min.isPresent()) min = OptionalDouble.of(min.getAsDouble() * value);
+        if (max.isPresent()) max = OptionalDouble.of(max.getAsDouble() * value);
+        if (value < 0) {
+            OptionalDouble temp = min;
+            min = max;
+            max = temp;
+        }
         return this;
     }
 
     @Override
     public Raster divide(double value) {
         operators.add((i, d) -> d / value);
+        if (min.isPresent()) min = OptionalDouble.of(min.getAsDouble() / value);
+        if (max.isPresent()) max = OptionalDouble.of(max.getAsDouble() / value);
+        if (value < 0) {
+            OptionalDouble temp = min;
+            min = max;
+            max = temp;
+        }
         return this;
     }
 
     @Override
     public Raster mod(double value) {
         operators.add((i, d) -> d % value);
+        min = OptionalDouble.empty();
+        max = OptionalDouble.empty();
         return this;
     }
 
     @Override
     public Raster clamp(double min, double max) {
         operators.add((i, d) -> Math.min(Math.max(d, min), max));
+        if (this.min.isPresent()) this.min = OptionalDouble.of(Math.min(Math.max(this.min.getAsDouble(), min), max));
+        if (this.max.isPresent()) this.max = OptionalDouble.of(Math.min(Math.max(this.max.getAsDouble(), min), max));
         return this;
     }
 
     @Override
     public Raster min(double value) {
         operators.add((i, d) -> Math.min(d, value));
+        if (min.isPresent()) min = OptionalDouble.of(Math.min(min.getAsDouble(), value));
+        if (max.isPresent()) max = OptionalDouble.of(Math.min(max.getAsDouble(), value));
         return this;
     }
 
     @Override
     public Raster min(double value, double cutOffValue) {
         operators.add((i, d) -> d < value ? cutOffValue : d);
+        if (min.isPresent()) min = OptionalDouble.of(min.getAsDouble() < value ? cutOffValue : min.getAsDouble());
+        if (max.isPresent()) max = OptionalDouble.of(max.getAsDouble() < value ? cutOffValue : max.getAsDouble());
         return this;
     }
 
     @Override
     public Raster max(double value) {
         operators.add((i, d) -> Math.max(d, value));
+        if (min.isPresent()) min = OptionalDouble.of(Math.max(min.getAsDouble(), value));
+        if (max.isPresent()) max = OptionalDouble.of(Math.max(max.getAsDouble(), value));
         return this;
     }
 
     @Override
     public Raster max(double value, double cutOffValue) {
         operators.add((i, d) -> d > value ? cutOffValue : d);
+        if (min.isPresent()) min = OptionalDouble.of(min.getAsDouble() > value ? cutOffValue : min.getAsDouble());
+        if (max.isPresent()) max = OptionalDouble.of(max.getAsDouble() > value ? cutOffValue : max.getAsDouble());
         return this;
     }
 
     @Override
     public Raster add(Raster raster) {
         operators.add((i, d) -> d + raster.get(i));
+        min = OptionalDouble.empty();
+        max = OptionalDouble.empty();
         return this;
     }
 
     @Override
     public Raster subtract(Raster raster) {
         operators.add((i, d) -> d - raster.get(i));
+        min = OptionalDouble.empty();
+        max = OptionalDouble.empty();
         return this;
     }
 
     @Override
     public Raster multiply(Raster raster) {
         operators.add((i, d) -> d * raster.get(i));
+        min = OptionalDouble.empty();
+        max = OptionalDouble.empty();
         return this;
     }
 
     @Override
     public Raster divide(Raster raster) {
         operators.add((i, d) -> d / raster.get(i));
+        min = OptionalDouble.empty();
+        max = OptionalDouble.empty();
         return this;
     }
 
     @Override
     public Raster mod(Raster raster) {
         operators.add((i, d) -> d % raster.get(i));
+        min = OptionalDouble.empty();
+        max = OptionalDouble.empty();
         return this;
     }
 
     @Override
     public Raster clamp(Raster min, Raster max) {
         operators.add((i, d) -> Math.min(Math.max(d, min.get(i)), max.get(i)));
+        this.min = OptionalDouble.empty();
+        this.max = OptionalDouble.empty();
         return this;
     }
 
     @Override
     public Raster min(Raster raster) {
         operators.add((i, d) -> Math.min(d, raster.get(i)));
+        min = OptionalDouble.empty();
+        max = OptionalDouble.empty();
         return this;
     }
 
     @Override
     public Raster max(Raster raster) {
         operators.add((i, d) -> Math.max(d, raster.get(i)));
+        min = OptionalDouble.empty();
+        max = OptionalDouble.empty();
         return this;
     }
 
@@ -183,6 +240,8 @@ public class RasterImpl implements Raster {
     public Raster normalize() {
         double max = max();
         operators.add((i, d) -> d / max);
+        if (this.min.isPresent()) this.min = OptionalDouble.of(this.min.getAsDouble() / max);
+        if (this.max.isPresent()) this.max = OptionalDouble.of(this.max.getAsDouble() / max);
         return this;
     }
 
@@ -194,6 +253,8 @@ public class RasterImpl implements Raster {
                 int y = i / width();
                 return raster.subRaster(x - radius, y - radius, radius * 2 + 1, radius * 2 + 1).average();
             });
+            min = OptionalDouble.empty();
+            max = OptionalDouble.empty();
             return this;
         } else {
             return eval().gaussianBlur(radius);
@@ -215,6 +276,8 @@ public class RasterImpl implements Raster {
                 double dy = bottom - top;
                 return dx * dx + dy * dy > thresholdSquared ? 1.0 : 0.0;
             });
+            min = OptionalDouble.empty();
+            max = OptionalDouble.empty();
             return this;
         } else {
             return eval().edges(thresholdSquared);
@@ -225,6 +288,9 @@ public class RasterImpl implements Raster {
     public Raster invert() {
         double max = max();
         operators.add((i, d) -> max - d);
+        OptionalDouble temp = min;
+        min = this.max;
+        this.max = temp;
         return this;
     }
 
@@ -239,24 +305,28 @@ public class RasterImpl implements Raster {
 
     @Override
     public double deviation() {
-        return 0;
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public double min() {
+        if (min.isPresent()) return min.getAsDouble();
         double min = Double.MAX_VALUE;
         for (int i = 0; i < width() * height(); i++) {
             min = Math.min(min, get(i));
         }
+        this.min = OptionalDouble.of(min);
         return min;
     }
 
     @Override
     public double max() {
+        if (max.isPresent()) return max.getAsDouble();
         double max = Double.MIN_VALUE;
         for (int i = 0; i < width() * height(); i++) {
             max = Math.max(max, get(i));
         }
+        this.max = OptionalDouble.of(max);
         return max;
     }
 

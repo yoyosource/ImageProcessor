@@ -25,22 +25,38 @@ public class ImageImpl implements Image {
         this.width = image.getWidth();
         this.height = image.getHeight();
         double[] redData = new double[width * height];
+        double redMax = 0, redMin = 0;
         double[] greenData = new double[width * height];
+        double greenMax = 0, greenMin = 0;
         double[] blueData = new double[width * height];
+        double blueMax = 0, blueMin = 0;
         double[] alphaData = new double[width * height];
+        double alphaMax = 0, alphaMin = 0;
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 int rgb = image.getRGB(x, y);
-                redData[y * width + x] = (rgb >> 16) & 0xFF;
-                greenData[y * width + x] = (rgb >> 8) & 0xFF;
-                blueData[y * width + x] = rgb & 0xFF;
-                alphaData[y * width + x] = (rgb >> 24) & 0xFF;
+                double red = (rgb >> 16) & 0xFF;
+                redMax = Math.max(redMax, red);
+                redMin = Math.min(redMin, red);
+                redData[y * width + x] = red;
+                double green = (rgb >> 8) & 0xFF;
+                greenMax = Math.max(greenMax, green);
+                greenMin = Math.min(greenMin, green);
+                greenData[y * width + x] = green;
+                double blue = rgb & 0xFF;
+                blueMax = Math.max(blueMax, blue);
+                blueMin = Math.min(blueMin, blue);
+                blueData[y * width + x] = blue;
+                double alpha = (rgb >> 24) & 0xFF;
+                alphaMax = Math.max(alphaMax, alpha);
+                alphaMin = Math.min(alphaMin, alpha);
+                alphaData[y * width + x] = alpha;
             }
         }
-        this.red = new RasterImpl(new ImageDataSource(width, height, redData));
-        this.green = new RasterImpl(new ImageDataSource(width, height, greenData));
-        this.blue = new RasterImpl(new ImageDataSource(width, height, blueData));
-        this.alpha = new RasterImpl(new ImageDataSource(width, height, alphaData));
+        this.red = new RasterImpl(new ImageDataSource(width, height, redData), redMin, redMax);
+        this.green = new RasterImpl(new ImageDataSource(width, height, greenData), greenMin, greenMax);
+        this.blue = new RasterImpl(new ImageDataSource(width, height, blueData), blueMin, blueMax);
+        this.alpha = new RasterImpl(new ImageDataSource(width, height, alphaData), alphaMin, alphaMax);
     }
 
     private class ImageDataSource implements RasterSource {
