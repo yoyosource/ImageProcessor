@@ -32,16 +32,18 @@ public class Main {
                 .edges(100)
                 .invert()
                 .eval();
-        image.map(raster -> raster.multiply(edges).multiply(lightRaster).clamp(0, 255))
+        image.map(raster -> edges.multiply(255).clamp(0, 255))
                 .write(new File("output-2.png"));
+        image.map(raster -> raster.multiply(edges).multiply(lightRaster).clamp(0, 255))
+                .write(new File("output-3.png"));
 
         Raster edgesOfEdges = image.lightness().edges(100).multiply(255).edges(100).invert().eval();
         Raster copyOfEdgesOfEdges = edgesOfEdges.eval();
         image.map(raster -> copyOfEdgesOfEdges.multiply(255))
-                .write(new File("output-3.png"));
+                .write(new File("output-4.png"));
 
         image.map(raster -> raster.multiply(edgesOfEdges).multiply(lightRaster).clamp(0, 255))
-                .write(new File("output-4.png"));
+                .write(new File("output-5.png"));
     }
 
     /*
